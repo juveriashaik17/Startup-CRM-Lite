@@ -306,5 +306,7 @@ const handleGracefulShutdown = async (signal) => {
 // Listen for termination signals
 process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => handleGracefulShutdown('SIGINT'));
-
+app.get("/",(req,res)=>{
+  res.send("CRM Backend is running successfully!");
+});
 export default app;
