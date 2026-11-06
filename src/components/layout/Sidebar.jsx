@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogOut } from 'lucide-react';
 import DarkModeToggle from '../common/DarkModeToggle';
+import { useAuth } from '../../context/AuthContext';
 
 /**
  * Sidebar Component
@@ -16,9 +17,20 @@ import DarkModeToggle from '../common/DarkModeToggle';
  */
 export default function Sidebar() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const toggleDrawer = () => setIsDrawerOpen(prev => !prev);
   const closeDrawer = () => setIsDrawerOpen(false);
+
+  // Compute initials for the profile avatar
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase()
+    : 'US';
 
   // Navigation items containing path, label, sub-label, and SVGs
   const navItems = [
@@ -162,7 +174,7 @@ export default function Sidebar() {
                     flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer h-12
                     ${isActive 
                       ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-755'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700'
                     }
                   `}
                 >
@@ -186,14 +198,27 @@ export default function Sidebar() {
                   <DarkModeToggle />
                 </div>
               </div>
-              <div className="flex items-center gap-3 py-1">
-                <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-200 dark:border-gray-600 flex-shrink-0">
-                  <span className="text-xs font-semibold text-gray-900 dark:text-white">SC</span>
+              <div className="flex items-center justify-between py-1 w-full">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/50 dark:border-blue-900/30 flex-shrink-0 font-bold text-xs">
+                    {initials}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user?.name || 'User'}</span>
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{user?.email || ''}</span>
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">Sarah Chen</span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Founder & Admin</span>
-                </div>
+                {/* Mobile logout button */}
+                <button
+                  onClick={() => {
+                    closeDrawer();
+                    logout();
+                  }}
+                  title="Log Out"
+                  className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
               </div>
             </div>
           </div>
@@ -243,14 +268,24 @@ export default function Sidebar() {
         </nav>
 
         {/* Sidebar Footer: Profile */}
-        <div className="flex items-center gap-3 p-4 border-t border-gray-200 dark:border-gray-700 mt-auto">
-          <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-200 dark:border-gray-600 flex-shrink-0">
-            <span className="text-xs font-semibold text-gray-900 dark:text-white">SC</span>
+        <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 mt-auto w-full">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200/50 dark:border-blue-900/30 flex-shrink-0 font-bold text-xs">
+              {initials}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user?.name || 'User'}</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{user?.email || ''}</span>
+            </div>
           </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">Sarah Chen</span>
-            <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Founder & Admin</span>
-          </div>
+          {/* Logout button */}
+          <button
+            onClick={logout}
+            title="Log Out"
+            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-colors cursor-pointer flex-shrink-0"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </aside>
     </>

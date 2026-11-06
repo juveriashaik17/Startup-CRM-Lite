@@ -26,45 +26,45 @@ export default function StatusBadge({ status }) {
     switch (statusLevel) {
       case 'New':
         return {
-          bg: 'bg-slate-100 dark:bg-zinc-800/80',
-          text: 'text-slate-700 dark:text-zinc-300',
-          border: 'border-slate-200 dark:border-zinc-700/50'
+          bg: 'bg-stone-100 dark:bg-stone-900/60',
+          text: 'text-stone-700 dark:text-stone-300',
+          border: 'border-stone-200 dark:border-stone-800'
         };
       case 'Contacted':
         return {
-          bg: 'bg-cyan-50 dark:bg-cyan-950/20',
-          text: 'text-cyan-700 dark:text-cyan-400',
-          border: 'border-cyan-100 dark:border-cyan-950/40'
+          bg: 'bg-orange-50 dark:bg-orange-950/30',
+          text: 'text-orange-700 dark:text-orange-300',
+          border: 'border-orange-200 dark:border-orange-900/40'
         };
       case 'Meeting Scheduled':
         return {
-          bg: 'bg-indigo-50 dark:bg-indigo-950/20',
-          text: 'text-indigo-700 dark:text-indigo-400',
-          border: 'border-indigo-100 dark:border-indigo-950/40'
+          bg: 'bg-amber-50 dark:bg-amber-950/30',
+          text: 'text-amber-800 dark:text-amber-300',
+          border: 'border-amber-200 dark:border-amber-900/40'
         };
       case 'Proposal Sent':
         return {
-          bg: 'bg-amber-50 dark:bg-amber-950/20',
-          text: 'text-amber-700 dark:text-amber-400',
-          border: 'border-amber-100 dark:border-amber-950/40'
+          bg: 'bg-rose-50 dark:bg-rose-950/30',
+          text: 'text-rose-700 dark:text-rose-300',
+          border: 'border-rose-200 dark:border-rose-900/40'
         };
       case 'Won':
         return {
-          bg: 'bg-emerald-50 dark:bg-emerald-950/20',
+          bg: 'bg-emerald-50 dark:bg-emerald-950/30',
           text: 'text-emerald-700 dark:text-emerald-400',
-          border: 'border-emerald-100 dark:border-emerald-950/40'
+          border: 'border-emerald-200 dark:border-emerald-900/40'
         };
       case 'Lost':
         return {
-          bg: 'bg-rose-50 dark:bg-rose-950/20',
-          text: 'text-rose-700 dark:text-rose-400',
-          border: 'border-rose-100 dark:border-rose-950/40'
+          bg: 'bg-red-50 dark:bg-red-950/30',
+          text: 'text-red-700 dark:text-red-400',
+          border: 'border-red-200 dark:border-red-900/40'
         };
       default:
         return {
-          bg: 'bg-slate-50 dark:bg-zinc-800/40',
-          text: 'text-slate-600 dark:text-zinc-400',
-          border: 'border-slate-200/60 dark:border-zinc-800'
+          bg: 'bg-stone-50 dark:bg-stone-900/40',
+          text: 'text-stone-600 dark:text-stone-400',
+          border: 'border-stone-200/60 dark:border-stone-800'
         };
     }
   };

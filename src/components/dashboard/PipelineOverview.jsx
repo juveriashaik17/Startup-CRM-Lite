@@ -31,12 +31,12 @@ export default function PipelineOverview({ leads = [] }) {
   // Define all valid pipeline statuses in sequence and map them to their corresponding
   // Tailwind color classes (used for the segment bars and legend indicators).
   const stageDefinitions = [
-    { key: 'New', label: 'New Capture', colorClass: 'bg-gray-300 dark:bg-gray-600', textClass: 'text-gray-500 dark:text-gray-400' },
-    { key: 'Contacted', label: 'Contacted', colorClass: 'bg-cyan-500 dark:bg-cyan-600', textClass: 'text-cyan-500 dark:text-cyan-400' },
-    { key: 'Meeting Scheduled', label: 'Meeting Scheduled', colorClass: 'bg-indigo-500 dark:bg-indigo-600', textClass: 'text-indigo-500 dark:text-indigo-400' },
-    { key: 'Proposal Sent', label: 'Proposal Sent', colorClass: 'bg-amber-500 dark:bg-amber-600', textClass: 'text-amber-500 dark:text-amber-400' },
+    { key: 'New', label: 'New Capture', colorClass: 'bg-stone-300 dark:bg-stone-600', textClass: 'text-stone-500 dark:text-stone-400' },
+    { key: 'Contacted', label: 'Contacted', colorClass: 'bg-rose-400 dark:bg-rose-400', textClass: 'text-rose-500 dark:text-rose-400' },
+    { key: 'Meeting Scheduled', label: 'Meeting Scheduled', colorClass: 'bg-amber-400 dark:bg-amber-400', textClass: 'text-amber-500 dark:text-amber-400' },
+    { key: 'Proposal Sent', label: 'Proposal Sent', colorClass: 'bg-rose-600 dark:bg-rose-500', textClass: 'text-rose-600 dark:text-rose-400' },
     { key: 'Won', label: 'Closed Won', colorClass: 'bg-emerald-500 dark:bg-emerald-600', textClass: 'text-emerald-500 dark:text-emerald-400' },
-    { key: 'Lost', label: 'Closed Lost', colorClass: 'bg-rose-500 dark:bg-rose-600', textClass: 'text-rose-500 dark:text-rose-400' }
+    { key: 'Lost', label: 'Closed Lost', colorClass: 'bg-red-700 dark:bg-red-600', textClass: 'text-red-700 dark:text-red-400' }
   ];
 
   const totalLeadsCount = leads.length;

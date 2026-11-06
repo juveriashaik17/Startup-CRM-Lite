@@ -59,8 +59,17 @@ export function useAnalytics(dateRange = '30') {
   const conversionRate  = useMemo(() => getConversionRate(leads),     [leads]);
   const pipelineValue   = useMemo(() => getPipelineValue(leads),      [leads]);
   const wonRevenue      = useMemo(() => getWonRevenue(leads),         [leads]);
-  const avgSalesCycle   = useMemo(() => getAverageSalesCycle(leads),  [leads]);
-  const lostRate        = useMemo(() => getLostRate(leads),           [leads]);
+  const avgSalesCycle   = useMemo(() => {
+    const cycle = getAverageSalesCycle(leads);
+    if (cycle > 0) return cycle;
+    return getAverageSalesCycle(allLeads);
+  }, [leads, allLeads]);
+  const lostRate        = useMemo(() => {
+    if (leads && leads.length > 0) {
+      return getLostRate(leads);
+    }
+    return getLostRate(allLeads);
+  }, [leads, allLeads]);
   const velocityData    = useMemo(() => getSalesVelocity(leads),      [leads]);
   const prevVelocity    = useMemo(() => getSalesVelocity(prevLeads),  [prevLeads]);
   const velocityGrowth  = useMemo(() => {

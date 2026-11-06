@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 
 const RANGE_OPTIONS = [
+  { label: 'All Time',     value: 'all' },
   { label: 'Last 7 Days',  value: '7'   },
   { label: 'Last 30 Days', value: '30'  },
   { label: 'Last 90 Days', value: '90'  },

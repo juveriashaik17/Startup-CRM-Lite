@@ -1,16 +1,23 @@
 {
   "name": "startup-crm-lite",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.js",
+    "dev:client": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node backend/server.js",
+    "server": "node backend/server.js",
+    "server:dev": "nodemon backend/server.js",
+    "seed": "node backend/seed.js",
+    "test:backend": "node backend/test-api.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.1",
+    "axios": "^1.18.1",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -24,6 +31,6 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "oxlint": "^1.69.0",
-    "vite": "^8.1.0"
+    "vite": "^8.3.6"
   }
 }

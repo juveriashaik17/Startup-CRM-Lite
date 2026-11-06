@@ -1,118 +1,243 @@
-import React, { createContext, useContext, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
+import * as leadService from '../services/leadService';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { sampleLeads } from '../data/sampleLeads';
 
-// ============================================================================
-// TypeScript-style Type Definitions
-// ============================================================================
-/**
- * Shape of the Lead object in Startup CRM Lite.
- * 
- * @typedef {Object} Lead
- * @property {string} id - The unique identifier of the lead (UUID or timestamp-based string).
- * @property {string} name - The full name of the primary contact person.
- * @property {string} company - The name of the company or organization.
- * @property {string} email - The primary contact email address.
- * @property {string} phone - The contact phone number.
- * @property {number} value - The quantitative financial value of the deal in USD.
- * @property {'New' | 'Contacted' | 'Meeting Scheduled' | 'Proposal Sent' | 'Won' | 'Lost'} status - Current pipeline status stage.
- * @property {'Website' | 'Referral' | 'LinkedIn' | 'Cold Call' | 'Email Campaign' | 'Other'} source - Marketing acquisition channel.
- * @property {string} createdAt - The creation date and time of the record in ISO 8601 string format.
- */
-
-/**
- * Shape of the Lead Context value.
- * 
- * @typedef {Object} LeadContextType
- * @property {Lead[]} leads - Array of all lead records in the workspace.
- * @property {(lead: Omit<Lead, 'id' | 'createdAt'>) => void} addLead - Adds a new lead record to the state.
- * @property {(id: string, updatedFields: Partial<Omit<Lead, 'id' | 'createdAt'>>) => void} updateLead - Modifies an existing lead record by ID.
- * @property {(id: string) => void} deleteLead - Removes a lead record by ID.
- * @property {(id: string) => Lead | undefined} getLeadById - Helper to retrieve a single lead record by ID.
- */
-
-// Create the context object with a default null value.
-// Null is passed to encourage proper provider usage diagnostics.
-const LeadContext = createContext(null);
+export const LeadContext = createContext(null);
 
 /**
  * LeadProvider Component
  * 
- * Centralized state wrapper managing the leads database in React state, synchronizing
- * updates with localStorage.
- * 
- * @param {{ children: React.ReactNode }} props - The component children wrappers.
- * @returns {React.JSX.Element} The Context Provider wrapper.
+ * Manages lead state, pagination, and backend database integration via Axios services.
+ * Defensively guards against null values and empty arrays to prevent frontend runtime crashes.
+ * Automatically synchronizes with backend when authenticated and falls back to sampleLeads for demo mode.
  */
 export function LeadProvider({ children }) {
-  // Initialize state from localStorage. If empty or corrupt, falls back to the sample leads.
   const [leads, setLeads] = useLocalStorage('startup-crm-leads', sampleLeads);
+  const [isLoading, setIsLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    total: Array.isArray(leads) ? leads.length : 0,
+    page: 1,
+    limit: 20,
+    pages: Math.max(1, Math.ceil((Array.isArray(leads) ? leads.length : 0) / 20)),
+  });
 
   /**
-   * CREATE: Adds a new lead record to the state.
-   * Generates a unique UUID and stamps the current time as createdAt automatically.
-   * 
-   * @param {Omit<Lead, 'id' | 'createdAt'>} leadPayload - The validated lead details.
+   * Helper function to normalize _id and id for component compatibility.
    */
-  const addLead = useCallback((leadPayload) => {
-    // Generate a secure UUID or fall back to date timestamp string if crypto context is unavailable
-    const uniqueId = typeof crypto?.randomUUID === 'function' 
-      ? crypto.randomUUID() 
-      : Date.now().toString();
-    
+  const mapLeadId = (lead) => {
+    if (!lead || typeof lead !== 'object') return null;
+    const rawId = lead._id || lead.id || String(Math.random());
+    const id = String(rawId);
+    return {
+      ...lead,
+      _id: id,
+      id,
+    };
+  };
+
+  /**
+   * READ: Fetch all leads belonging to authenticated user from database.
+   * If user is unauthenticated or backend is offline, retains local sample leads.
+   * 
+   * @param {Object} params - Query filters (status, search, page, limit)
+   */
+  const fetchLeads = useCallback(async (params) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('crm-token') : null;
+    if (!token) {
+      // User is viewing the dashboard in local/demo mode with sample leads
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await leadService.getLeads(params);
+      if (res && res.success) {
+        const rawList = Array.isArray(res.data) ? res.data : (res.data?.leads || []);
+        const mappedLeads = rawList.map(mapLeadId).filter(Boolean);
+        setLeads(mappedLeads);
+        if (res.pagination) {
+          setPagination(res.pagination);
+        }
+      }
+    } catch (error) {
+      if (error?.response?.status !== 401) {
+        console.warn('[LeadContext] Backend fetch unavailable, using local state:', error.message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setLeads]);
+
+  // Automatically fetch fresh leads when component mounts with valid auth token
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('crm-token') : null;
+    if (token) {
+      fetchLeads();
+    }
+  }, [fetchLeads]);
+
+  /**
+   * CREATE: Adds a new lead to database (if authenticated) and updates state.
+   * Falls back to client-side creation for offline/demo mode.
+   * 
+   * @param {Object} leadPayload - Lead details (name, company, email, value, status, etc.)
+   */
+  const addLead = useCallback(async (leadPayload) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('crm-token') : null;
+    if (token) {
+      try {
+        const res = await leadService.createLead(leadPayload);
+        if (res && res.success && res.data) {
+          const newLead = mapLeadId(res.data);
+          if (newLead) {
+            setLeads((prevLeads) => [newLead, ...(Array.isArray(prevLeads) ? prevLeads : [])]);
+          }
+          toast.success(res.message || 'Lead created successfully');
+          return newLead;
+        }
+      } catch (error) {
+        console.error('[LeadContext] Backend create failed:', error);
+        const errMsg = error.response?.data?.message ||
+          (error.response?.data?.errors && error.response.data.errors[0]?.message) ||
+          'Failed to create lead on server';
+        toast.error(errMsg);
+        throw error;
+      }
+    }
+
+    // Local creation fallback (works offline or in demo mode)
+    const uniqueId = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `lead-${Date.now()}`;
     const newLead = {
       ...leadPayload,
       id: uniqueId,
-      createdAt: new Date().toISOString()
+      _id: uniqueId,
+      createdAt: new Date().toISOString(),
     };
-
-    setLeads((prevLeads) => [newLead, ...prevLeads]);
+    setLeads((prevLeads) => [newLead, ...(Array.isArray(prevLeads) ? prevLeads : [])]);
+    toast.success('Lead created successfully');
+    return newLead;
   }, [setLeads]);
 
   /**
-   * UPDATE: Modifies an existing lead record by ID.
-   * Preserves original creation timestamps and ID.
+   * UPDATE: Updates an existing lead in database and updates state.
    * 
-   * @param {string} id - The identifier of the lead to update.
-   * @param {Partial<Omit<Lead, 'id' | 'createdAt'>>} updatedFields - The fields to modify.
+   * @param {string} id - Lead ID
+   * @param {Object} updatedFields - Fields to update
    */
-  const updateLead = useCallback((id, updatedFields) => {
+  const updateLead = useCallback(async (id, updatedFields) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('crm-token') : null;
+    if (token) {
+      try {
+        const res = await leadService.updateLead(id, updatedFields);
+        if (res && res.success && res.data) {
+          const updatedLead = mapLeadId(res.data);
+          setLeads((prevLeads) =>
+            (Array.isArray(prevLeads) ? prevLeads : []).map((lead) =>
+              lead._id === id || lead.id === id ? updatedLead : lead
+            )
+          );
+          toast.success(res.message || 'Lead updated successfully');
+          return updatedLead;
+        }
+      } catch (error) {
+        console.error('[LeadContext] Backend update failed:', error);
+        const errMsg = error.response?.data?.message ||
+          (error.response?.data?.errors && error.response.data.errors[0]?.message) ||
+          'Failed to update lead on server';
+        toast.error(errMsg);
+        throw error;
+      }
+    }
+
     setLeads((prevLeads) =>
-      prevLeads.map((lead) =>
-        lead.id === id 
-          ? { ...lead, ...updatedFields } 
-          : lead
+      (Array.isArray(prevLeads) ? prevLeads : []).map((lead) =>
+        lead._id === id || lead.id === id ? { ...lead, ...updatedFields } : lead
       )
     );
+    toast.success('Lead updated successfully');
   }, [setLeads]);
 
   /**
-   * DELETE: Removes a lead record by ID.
+   * UPDATE STATUS: Fast patch of pipeline stage.
    * 
-   * @param {string} id - The identifier of the lead to remove.
+   * @param {string} id - Lead ID
+   * @param {string} status - New pipeline status stage
    */
-  const deleteLead = useCallback((id) => {
-    setLeads((prevLeads) => prevLeads.filter((lead) => lead.id !== id));
+  const updateLeadStatus = useCallback(async (id, status) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('crm-token') : null;
+    if (token) {
+      try {
+        const res = await leadService.updateLeadStatus(id, status);
+        if (res && res.success && res.data) {
+          const updatedLead = mapLeadId(res.data);
+          setLeads((prevLeads) =>
+            (Array.isArray(prevLeads) ? prevLeads : []).map((lead) =>
+              lead._id === id || lead.id === id ? updatedLead : lead
+            )
+          );
+          toast.success(res.message || 'Lead status updated');
+          return updatedLead;
+        }
+      } catch (error) {
+        console.error('[LeadContext] Backend status update failed:', error);
+        const errMsg = error.response?.data?.message || 'Failed to update lead status';
+        toast.error(errMsg);
+        throw error;
+      }
+    }
+
+    setLeads((prevLeads) =>
+      (Array.isArray(prevLeads) ? prevLeads : []).map((lead) =>
+        lead._id === id || lead.id === id ? { ...lead, status } : lead
+      )
+    );
+    toast.success('Lead status updated');
   }, [setLeads]);
 
   /**
-   * READ HELPER: Retrieves a single lead record from the current state.
+   * DELETE: Removes a lead from database and updates state.
    * 
-   * @param {string} id - The identifier of the lead to locate.
-   * @returns {Lead|undefined} The lead record, or undefined if not found.
+   * @param {string} id - Lead ID
+   */
+  const deleteLead = useCallback(async (id) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('crm-token') : null;
+    if (token) {
+      try {
+        await leadService.deleteLead(id);
+      } catch (error) {
+        console.error('[LeadContext] Backend delete failed:', error);
+        const errMsg = error.response?.data?.message || 'Failed to delete lead from server';
+        toast.error(errMsg);
+        throw error;
+      }
+    }
+
+    setLeads((prevLeads) =>
+      (Array.isArray(prevLeads) ? prevLeads : []).filter((lead) => lead._id !== id && lead.id !== id)
+    );
+    toast.success('Lead deleted successfully');
+  }, [setLeads]);
+
+  /**
+   * READ SINGLE HELPER: Locate lead by ID from state.
    */
   const getLeadById = useCallback((id) => {
-    return leads.find((lead) => lead.id === id);
+    return (Array.isArray(leads) ? leads : []).find((lead) => lead._id === id || lead.id === id);
   }, [leads]);
 
-  // Memoize context value to avoid re-renders on every consumer component
   const contextValue = useMemo(() => ({
-    leads,
+    leads: Array.isArray(leads) ? leads : [],
+    isLoading,
+    pagination,
+    fetchLeads,
     addLead,
     updateLead,
+    updateLeadStatus,
     deleteLead,
-    getLeadById
-  }), [leads, addLead, updateLead, deleteLead, getLeadById]);
+    getLeadById,
+  }), [leads, isLoading, pagination, fetchLeads, addLead, updateLead, updateLeadStatus, deleteLead, getLeadById]);
 
   return (
     <LeadContext.Provider value={contextValue}>
@@ -122,23 +247,15 @@ export function LeadProvider({ children }) {
 }
 
 /**
- * useLeads Custom Hook
- * 
- * Provides components with direct access to the Lead Management state.
- * Employs proper error boundary diagnostics to warn if consumed outside of its Provider.
- * 
- * @returns {LeadContextType} The lead management context methods and states.
- * @throws {Error} Architectural error if used outside a LeadProvider.
+ * useLeads Hook
+ * Custom hook to safely consume leads context.
  */
 export function useLeads() {
   const context = useContext(LeadContext);
-  
   if (!context) {
-    throw new Error(
-      'useLeads must be invoked within the context of a <LeadProvider> hierarchy. ' +
-      'Please verify that the component is wrapped properly in src/main.jsx.'
-    );
+    throw new Error('useLeads must be invoked within the context of a <LeadProvider> hierarchy.');
   }
-  
   return context;
 }
+
+export default LeadContext;

@@ -52,37 +52,37 @@ const StatsCard = memo(function StatsCard({ title, value, icon: Icon, change, co
   const theme = colorMap[color] || colorMap.primary;
 
   return (
-    <div className="p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md transition-all duration-150 flex flex-col justify-between min-h-[140px]">
+    <div className="p-6 bg-white dark:bg-gray-800/90 border border-gray-200/80 dark:border-gray-700/80 rounded-2xl shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 flex flex-col justify-between min-h-[148px] group">
       
       {/* Top Section: Metric title and styled icon wrapper */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
           {title}
         </span>
         {/* Styled container mapping icon to color theme */}
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${theme.bg} ${theme.text} ${theme.border}`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-sm ${theme.bg} ${theme.text} ${theme.border} group-hover:scale-105 transition-transform duration-200`}>
           {Icon && <Icon className="w-5 h-5" />}
         </div>
       </div>
 
       {/* Bottom Section: Quantitative value and trend direction */}
-      <div className="mt-4">
+      <div className="mt-3">
         {/* Large, legible numeric read-out */}
-        <div className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+        <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white">
           {value}
         </div>
         
         {/* Horizontal layout combining trend badge and comparison label */}
-        <div className="flex items-center gap-1.5 mt-1.5">
+        <div className="flex items-center gap-2 mt-2">
           {/* Trend badge styled dynamically in green (success) or red (danger) */}
-          <span className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 py-0.5 rounded-md ${
+          <span className={`inline-flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
             isPositive 
-              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' 
-              : 'bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400'
+              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' 
+              : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400'
           }`}>
             {isPositive ? '↑' : '↓'} {change}
           </span>
-          <span className="text-[10px] text-gray-400 dark:text-gray-500 whitespace-nowrap">
+          <span className="text-[11px] text-gray-400 dark:text-gray-500 font-medium">
             vs last month
           </span>
         </div>

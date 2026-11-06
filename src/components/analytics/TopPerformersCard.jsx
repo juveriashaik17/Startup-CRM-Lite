@@ -28,18 +28,18 @@ const RankBadge = ({ rank }) => {
 
 // ─── Avatar colors per rank ────────────────────────────────────────────────────
 const AVATAR_GRADIENTS = [
-  'from-blue-500 to-blue-600',
-  'from-emerald-500 to-emerald-600',
-  'from-violet-500 to-violet-600',
-  'from-amber-500 to-amber-600',
   'from-rose-500 to-rose-600',
+  'from-orange-400 to-rose-500',
+  'from-amber-400 to-amber-500',
+  'from-emerald-500 to-emerald-600',
+  'from-red-500 to-rose-700',
 ];
 
 // ─── Performer Row ────────────────────────────────────────────────────────────
 const PerformerRow = memo(({ performer, maxRevenue }) => {
   const pct = maxRevenue > 0 ? Math.round((performer.revenue / maxRevenue) * 100) : 0;
   const gradient = AVATAR_GRADIENTS[(performer.rank - 1) % AVATAR_GRADIENTS.length];
-  const barColors = ['#3B82F6', '#10B981', '#7C3AED', '#F59E0B', '#F43F5E'];
+  const barColors = ['#E85D5D', '#F28A73', '#FFC857', '#16A34A', '#E06A55'];
   const barColor = barColors[(performer.rank - 1) % barColors.length];
 
   return (
