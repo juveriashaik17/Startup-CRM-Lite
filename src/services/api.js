@@ -1,7 +1,11 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const rawBaseUrl = import.meta.env.VITE_API_URL;
+const rawBaseUrl =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD
+    ? 'https://nexus-production-0a65.up.railway.app'
+    : 'http://localhost:5000');
 const baseURL = rawBaseUrl ? rawBaseUrl.replace(/\/+$/, '') : '';
 
 // Create an Axios instance

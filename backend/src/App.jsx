@@ -2,10 +2,13 @@ import React, { Suspense } from 'react';
 // Import BrowserRouter to enable HTML5 history-based client-side routing,
 // allowing our page switches to happen instantly without page refreshes.
 import { BrowserRouter } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 
 // Import our premium layout components and routing infrastructure
 import Sidebar from './components/layout/Sidebar';
 import AppRoutes from './routes';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LeadProvider } from './context/LeadContext';
 
 /**
  * LoadingFallback Component
@@ -38,56 +41,75 @@ function LoadingFallback() {
 }
 
 /**
+ * AppContent Component
+ * Separated to safely consume the useAuth state hook inside the AuthProvider.
+ */
+function AppContent() {
+  const { token, isLoading } = useAuth();
+
+  // If loading the bootstrap session, show a full screen premium loading spinner
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <div className="relative w-12 h-12">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-500/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        <p className="mt-4 text-xs font-semibold text-slate-400 dark:text-zinc-500 tracking-wider uppercase animate-pulse">
+          Syncing workspace...
+        </p>
+      </div>
+    );
+  }
+
+  const isAuthenticated = !!token;
+
+  return (
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200 font-sans antialiased">
+      {/* Global toast notification system */}
+      <Toaster position="top-right" />
+
+      {/* Persistent Workspace Sidebar: Render only when user is authenticated */}
+      {isAuthenticated && <Sidebar />}
+
+      {/* 
+        Main Scrollable Page Container:
+        - Fills the remaining space (flex-1).
+        - Sets up vertical flex-column structure.
+        - Manages overflow to ensure individual scroll controls.
+        - Adds padding at bottom on mobile to accommodate the fixed bottom nav bar.
+      */}
+      <main className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isAuthenticated ? 'pb-16 md:pb-0' : ''}`}>
+        
+        {/* Scrollable inner viewport containing pages */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto w-full">
+            <Suspense fallback={<LoadingFallback />}>
+              <AppRoutes />
+            </Suspense>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  );
+}
+
+/**
  * App Component
  * 
  * The main application shell. Integrates:
  * 1. Client-side routing context via <BrowserRouter>
- * 2. Layout structure placing the <Sidebar> and dynamic scrollable page frame side-by-side
- * 3. Lazy loading execution wrapped in a smart <Suspense> boundary
+ * 2. Session state authentication context via <AuthProvider>
  */
 function App() {
   return (
-    // Wrap the entire application in BrowserRouter to provide routing state.
     <BrowserRouter>
-      {/* 
-        Unified Workspace Shell Layout:
-        - On desktop, places Sidebar and Main Content side-by-side (flex-row, min-h-screen).
-        - On mobile, stacks them vertically (flex-col).
-        - Smooth transition for theme colors.
-      */}
-      <div className="flex flex-col md:flex-row min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200 font-sans antialiased">
-        
-        {/* Persistent Workspace Sidebar */}
-        <Sidebar />
-
-        {/* 
-          Main Scrollable Page Container:
-          - Fills the remaining space (flex-1).
-          - Sets up vertical flex-column structure.
-          - Manages overflow to ensure individual scroll controls.
-          - Adds padding at bottom on mobile to accommodate the fixed bottom nav bar.
-        */}
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden pb-16 md:pb-0">
-          
-          {/* Scrollable inner viewport containing pages */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-            <div className="max-w-7xl mx-auto w-full">
-              {/* 
-                Suspense Boundary:
-                React.lazy components must be wrapped in a <Suspense> container.
-                If a user clicks a route and the JS chunk for that page hasn't
-                loaded yet, React will display the LoadingFallback component,
-                replacing it instantly once the asset completes loading.
-              */}
-              <Suspense fallback={<LoadingFallback />}>
-                <AppRoutes />
-              </Suspense>
-            </div>
-          </div>
-
-        </main>
-
-      </div>
+      <AuthProvider>
+        <LeadProvider>
+          <AppContent />
+        </LeadProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

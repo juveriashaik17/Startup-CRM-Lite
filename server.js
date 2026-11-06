@@ -12,15 +12,15 @@ import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const distPath = path.resolve(__dirname, '../dist');
+const distPath = path.resolve(__dirname, './dist');
 
 // ============================================================================
 // 1. ENVIRONMENT CONFIGURATION & VALIDATION
 // ============================================================================
 
-// Load environment variables: check backend/.env first, then root .env if running from root
+// Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '.env') });
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, 'backend/.env') });
 
 /**
  * Validate that critical environment variables are present before starting the server.
@@ -31,14 +31,8 @@ const checkRequiredEnvVars = () => {
     process.env.JWT_SECRET = 'startup_crm_super_secret_local_jwt_key_2026';
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
-    const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
-
-    if (missingVars.length > 0) {
-      console.error(`[FATAL] Missing required environment variable(s) for production: ${missingVars.join(', ')}`);
-      process.exit(1);
-    }
+  if (process.env.NODE_ENV === 'production' && !process.env.MONGODB_URI) {
+    console.warn('[Server] MONGODB_URI not configured in production. Running in Local Offline Mode.');
   }
 };
 
@@ -113,7 +107,16 @@ app.use(
         return callback(null, true);
       }
 
-      if (allowedOrigins.has(normalizedOrigin)) {
+      // Allow any Vercel deployment preview or production domain
+      let isAllowedVercel = false;
+      try {
+        const parsed = new URL(normalizedOrigin);
+        if (parsed.hostname.endsWith('.vercel.app')) {
+          isAllowedVercel = true;
+        }
+      } catch (_) {}
+
+      if (allowedOrigins.has(normalizedOrigin) || isAllowedVercel) {
         return callback(null, true);
       }
 
@@ -128,11 +131,10 @@ app.use(
 // 4. RATE LIMITING MIDDLEWARE
 // ============================================================================
 
-// General rate limiter: 100 requests per 15 minutes per IP across all /api routes (skipped in development)
+// General rate limiter: 100 requests per 15 minutes per IP across all /api routes
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
-  skip: () => process.env.NODE_ENV !== 'production',
   standardHeaders: true, // Return standard RateLimit headers in the `RateLimit-*` format
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   message: {
@@ -141,11 +143,10 @@ const generalLimiter = rateLimit({
   },
 });
 
-// Stricter rate limiter for authentication in production (skipped in development)
+// Stricter rate limiter for authentication: 10 requests per 15 minutes to prevent brute-force attacks
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
-  skip: () => process.env.NODE_ENV !== 'production',
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -177,8 +178,22 @@ app.use((req, res, next) => {
 });
 
 // ============================================================================
-// 6. HEALTH CHECK ENDPOINT
+// 6. HEALTH CHECK & ROOT ENDPOINTS
 // ============================================================================
+
+// GET / - Root welcome/status endpoint (or served from dist SPA fallback below)
+app.get('/', (req, res, next) => {
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  return res.status(200).json({
+    status: 'OK',
+    message: 'Startup CRM Lite Backend API is running successfully!',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // GET /api/health - Lightweight health probe for load balancers and container orchestrators
 app.get('/api/health', (req, res) => {
@@ -235,7 +250,7 @@ if (fs.existsSync(distPath)) {
 app.use(errorHandler);
 
 // ============================================================================
-// 9. DATABASE CONNECTION, SERVER LIFECYCLE & GRACEFUL SHUTDOWN
+// 10. DATABASE CONNECTION, SERVER LIFECYCLE & GRACEFUL SHUTDOWN
 // ============================================================================
 
 const PORT = process.env.PORT || 5000;

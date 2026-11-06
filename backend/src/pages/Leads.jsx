@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 // Import specific Lucide React icons for toolbar controls and view toggles
 import { Plus, LayoutGrid, Table, X } from 'lucide-react';
 // Import toast and Toaster from react-hot-toast for notification alerts
-import toast, { Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 
 // Import our custom global useLeads context hook
 import { useLeads } from '../context/LeadContext';
@@ -29,7 +29,12 @@ import EmptyState from '../components/common/EmptyState';
  */
 export default function Leads() {
   // Consume leads array and CRUD transactions from centralized LeadContext
-  const { leads, addLead, updateLead, deleteLead } = useLeads();
+  const { leads, addLead, updateLead, deleteLead, fetchLeads } = useLeads();
+
+  // Fetch leads on component mount
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   // ============================================================================
   // UI Layout & Filtering States (Managed Locally)
@@ -56,12 +61,14 @@ export default function Leads() {
   // Derived Variable Filtering Engine (React Best Practice)
   // ============================================================================
   // Filters the global leads array dynamically using memoized logical matches.
-  const filteredLeads = leads
-    .filter((lead) => activeFilter === 'All' || lead.status === activeFilter)
+  const safeLeads = Array.isArray(leads) ? leads : [];
+  const query = (searchQuery || '').toLowerCase();
+  const filteredLeads = safeLeads
+    .filter((lead) => activeFilter === 'All' || lead?.status === activeFilter)
     .filter((lead) =>
-      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchQuery.toLowerCase())
+      (lead?.name || '').toLowerCase().includes(query) ||
+      (lead?.company || '').toLowerCase().includes(query) ||
+      (lead?.email || '').toLowerCase().includes(query)
     );
 
   /**
@@ -109,69 +116,39 @@ export default function Leads() {
    * 
    * @param {Object} formData - The validated payload from LeadForm.
    */
-  const handleFormSubmit = (formData) => {
-    if (selectedLead) {
-      // UPDATE FLOW: delegate to context updateLead method by matching selection ID
-      updateLead(selectedLead.id, formData);
-      
-      // Trigger toast alert for update
-      toast.success(`Lead details for "${formData.name}" updated successfully.`, {
-        icon: '📝',
-        style: {
-          borderRadius: '12px',
-          background: '#FFFFFF',
-          color: '#0F172A',
-          border: '1px solid #E2E8F0',
-          fontSize: '13px'
-        }
-      });
-    } else {
-      // CREATE FLOW: delegate to context addLead method. Unique ID & createdAt stamped automatically.
-      addLead(formData);
-      
-      // Trigger toast alert for creation
-      toast.success(`New prospect "${formData.name}" added to the workspace.`, {
-        icon: '✨',
-        style: {
-          borderRadius: '12px',
-          background: '#FFFFFF',
-          color: '#0F172A',
-          border: '1px solid #E2E8F0',
-          fontSize: '13px'
-        }
-      });
+  const handleFormSubmit = async (formData) => {
+    try {
+      if (selectedLead) {
+        // UPDATE FLOW: delegate to context updateLead method by matching selection ID
+        await updateLead(selectedLead.id, formData);
+      } else {
+        // CREATE FLOW: delegate to context addLead method.
+        await addLead(formData);
+      }
+      closeModal();
+    } catch (err) {
+      console.error('[Leads] Submit failed:', err);
     }
-
-    closeModal();
   };
 
   /**
    * Executes Delete transactions by delegating lead ID to Context API provider.
-   * Renders red toast notification alerts on record deletion.
    * 
    * @param {string} id - The lead identifier to delete.
    */
-  const handleDeleteLead = (id) => {
-    const leadToDelete = leads.find((l) => l.id === id);
+  const handleDeleteLead = async (id) => {
+    const leadToDelete = leads.find((l) => l.id === id || l._id === id);
     if (!leadToDelete) return;
 
     const confirmDelete = window.confirm(`Are you sure you want to delete the lead "${leadToDelete.name}"? This action cannot be undone.`);
     if (!confirmDelete) return;
 
-    // Delegate to context deleteLead method
-    deleteLead(id);
-
-    // Trigger red deletion toast notification
-    toast.error(`Lead "${leadToDelete.name}" has been removed from the database.`, {
-      icon: '🗑️',
-      style: {
-        borderRadius: '12px',
-        background: '#FFF5F5',
-        color: '#E53E3E',
-        border: '1px solid #FED7D7',
-        fontSize: '13px'
-      }
-    });
+    try {
+      // Delegate to context deleteLead method
+      await deleteLead(id);
+    } catch (err) {
+      console.error('[Leads] Delete failed:', err);
+    }
   };
 
   return (

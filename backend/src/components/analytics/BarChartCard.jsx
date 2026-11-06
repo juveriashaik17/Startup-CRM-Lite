@@ -22,6 +22,16 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // ─── BarChartCard ─────────────────────────────────────────────────────────────
 export default memo(function BarChartCard({ data }) {
+  const { maxLeads, average, totalLeads } = useMemo(() => {
+    if (!data?.length) {
+      return { maxLeads: 1, average: 0, totalLeads: 0 };
+    }
+    const max = Math.max(...data.map((d) => d.leads), 1);
+    const avg = Math.round(data.reduce((s, d) => s + d.leads, 0) / data.length);
+    const total = data.reduce((s, d) => s + d.leads, 0);
+    return { maxLeads: max, average: avg, totalLeads: total };
+  }, [data]);
+
   if (!data?.length) {
     return (
       <div className="p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[300px] text-slate-400 dark:text-zinc-500 text-sm">
@@ -29,13 +39,6 @@ export default memo(function BarChartCard({ data }) {
       </div>
     );
   }
-
-  const { maxLeads, average, totalLeads } = useMemo(() => {
-    const max = Math.max(...data.map((d) => d.leads), 1);
-    const avg = Math.round(data.reduce((s, d) => s + d.leads, 0) / data.length);
-    const total = data.reduce((s, d) => s + d.leads, 0);
-    return { maxLeads: max, average: avg, totalLeads: total };
-  }, [data]);
 
   return (
     <div className="p-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300">
@@ -56,29 +59,29 @@ export default memo(function BarChartCard({ data }) {
           <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barCategoryGap="35%">
             <defs>
               <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
-                <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.7} />
+                <stop offset="0%" stopColor="#E85D5D" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="#F28A73" stopOpacity={0.7} />
               </linearGradient>
               <linearGradient id="barGradientPeak" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#1D4ED8" stopOpacity={1} />
-                <stop offset="100%" stopColor="#2563EB" stopOpacity={0.9} />
+                <stop offset="0%" stopColor="#D64242" stopOpacity={1} />
+                <stop offset="100%" stopColor="#E85D5D" stopOpacity={0.9} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" className="dark:stroke-zinc-800" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F2D9D5" className="dark:stroke-zinc-800" />
             <XAxis
               dataKey="month"
-              tick={{ fontSize: 11, fill: '#94A3B8' }}
+              tick={{ fontSize: 11, fill: '#A37E7C' }}
               tickLine={false}
               axisLine={false}
               dy={6}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: '#94A3B8' }}
+              tick={{ fontSize: 11, fill: '#A37E7C' }}
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(37,99,235,0.06)', radius: 6 }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(232,93,93,0.08)', radius: 6 }} />
             <ReferenceLine
               y={average}
               stroke="#CBD5E1"

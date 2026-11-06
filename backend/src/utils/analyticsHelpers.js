@@ -5,7 +5,7 @@
  * Currency is formatted in Indian Rupees (₹) with lakh/crore compact notation.
  */
 
-import { STATUS_LABEL_MAP, FUNNEL_STAGES, SOURCE_COLORS } from '../constants/analyticsColors';
+import { STATUS_LABEL_MAP, FUNNEL_STAGES, SOURCE_COLORS } from '../constants/analyticsColors.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INTERNAL HELPERS
@@ -143,20 +143,26 @@ export function getWonRevenue(leads) {
 }
 
 export function getAverageSalesCycle(leads) {
-  if (!leads?.length) return 0;
-  const won = leads.filter((l) => l?.status === 'Won' && l?.wonAt && l?.createdAt);
+  if (!Array.isArray(leads) || !leads.length) return 0;
+  const won = leads.filter((l) => l?.status === 'Won');
   if (!won.length) return 0;
   const total = won.reduce((sum, l) => {
-    const diff = (new Date(l.wonAt) - new Date(l.createdAt)) / 86400000;
-    return sum + Math.max(0, diff);
+    const start = l?.createdAt ? new Date(l.createdAt).getTime() : Date.now();
+    const end = l?.wonAt
+      ? new Date(l.wonAt).getTime()
+      : (l?.updatedAt ? new Date(l.updatedAt).getTime() : start);
+    const diff = Math.max(0, Math.round((end - start) / 86400000));
+    // If closed on same day or minimal diff, record at least 1 day cycle
+    return sum + (diff === 0 ? 1 : diff);
   }, 0);
   return Math.round(total / won.length);
 }
 
 export function getLostRate(leads) {
-  if (!leads?.length) return 0;
+  if (!Array.isArray(leads) || !leads.length) return 0;
   const lost = leads.filter((l) => l?.status === 'Lost').length;
-  return Math.round((lost / leads.length) * 100);
+  const rate = (lost / leads.length) * 100;
+  return Number(rate.toFixed(1));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
